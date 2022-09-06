@@ -17,29 +17,27 @@ class SlotMachine:
         return chance < self.winning_prob
 
 
+class GaussianReward:
+
+    def __init__(self, mean, sigma):
+        self.mean = mean
+        self.sigma = sigma
+
+    def pull(self):
+        return np.random.normal(self.mean, self.sigma)
+
+
 class BanditLearningLoop:
 
-    def __init__(self, slot_win_probs, agent, trials=1000):
-        self.slot_machines = [SlotMachine(prob) for prob in slot_win_probs]
+    def __init__(self, slot_machine_list, agent, trials=1000):
+        self.slot_machines = slot_machine_list
+            # [SlotMachine(prob) for prob in slot_win_probs]
         self.agent = agent
         self.trials = trials
-        self.rewards = np.zeros(trials)
-        self.status = {
-            'p_estimate': [0] * len(self.slot_machines),
-            'num_pulls': [0] * len(self.slot_machines)
-        }
 
     def learning_loop(self):
         for trial in range(self.trials):
-            slot_index = self.agent.action(self.status)
+            slot_index = self.agent.action()
             outcome = self.slot_machines[slot_index].pull()
-            self.update_status(outcome, slot_index)
-            self.update_reward(outcome, trial)
-
-    def update_status(self, outcome, slot_index):
-        self.status['num_pulls'][slot_index] += 1
-        self.status['p_estimate'][slot_index] += \
-            (outcome - self.status['p_estimate'][slot_index]) / self.status['num_pulls'][slot_index]
-
-    def update_reward(self, outcome, trial):
-        self.rewards[trial] = outcome
+            self.agent.update_status(outcome, slot_index)
+            self.agent.update_reward(outcome)
